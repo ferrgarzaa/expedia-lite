@@ -7,6 +7,7 @@ plain Python dictionaries and lists so it can be tested on its own.
 
 import csv
 from pathlib import Path
+from typing import Optional
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 HOTELS_CSV = DATA_DIR / "hotels.csv"
@@ -34,8 +35,8 @@ def _nights(check_in: str, check_out: str) -> int:
     return (date(y2, m2, d2) - date(y1, m1, d1)).days
 
 
-def search_trips_by_city(city: str, hotels: list[dict] | None = None,
-                          trips: list[dict] | None = None) -> list[dict]:
+def search_trips_by_city(city: str, hotels: Optional[list] = None,
+                          trips: Optional[list] = None) -> list[dict]:
     """Return trips whose hotel is in the given city (case-insensitive).
 
     Each result joins the trip with its hotel (via hotel_id) and adds
