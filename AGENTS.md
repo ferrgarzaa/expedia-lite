@@ -50,9 +50,15 @@ Trigger: "Run the smoke test"
 6. Through the visible interface, search "Boston" and confirm the
    results table shows 4 rows; search "Miami" and confirm the
    no-results message appears.
-7. Stop only the processes created by this smoke test.
-8. Report concise evidence: tests, static checks, API responses, UI
-   behavior, and cleanup.
+7. Create a booking through the interface, confirm it appears in
+   Booking History, cancel it (record stays, status changes), then
+   delete it (row disappears).
+8. Restart the backend and frontend against the same database file
+   and confirm the seeded rows appear exactly once and no prior
+   change was lost.
+9. Stop only the processes created by this smoke test.
+10. Report concise evidence: tests, static checks, API responses, UI
+    behavior, and cleanup.
 
 ## COMBINED TRIGGER
 

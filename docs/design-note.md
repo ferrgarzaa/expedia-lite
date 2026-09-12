@@ -1,32 +1,44 @@
-# Design Note — Expedia Lite (Part 1)
+# Design Note — Expedia Lite
 
 ## Layers
 
-- **Interface (Vue, `frontend/`)**: a city text input, a Search
-  button, a results table, and a distinct "no results" message.
-  Owns only presentation and the fetch call — no data logic.
+- **Interface (Vue, `frontend/`)**: `TripSearch.vue` owns the city
+  input, Search button, results table, "no results" message, and an
+  inline booking form (traveler dropdown + confirm). `BookingHistory.vue`
+  owns the history table and its Cancel/Delete buttons. Neither
+  component knows about SQLite or how a query is built — they only
+  call `fetch` and render the JSON they get back.
 - **Logic / API (FastAPI, `backend/app/main.py`)**: exposes
-  `GET /api/search?city=...`, calls the data layer, and serializes
-  the response as JSON. Handles CORS for local development.
-- **Data (`backend/app/data.py`)**: framework-free Python. Reads
-  `hotels.csv` and `trips.csv`, joins a trip to its hotel by
-  `hotel_id`, and derives nights and stay price from the check-in/
-  check-out dates and nightly rate.
-- **Persistence (Part 1)**: the CSV files themselves — read-only for
-  this part. Part 2 will move persistence to SQLite.
+  `GET /api/search`, `GET /api/users`, `GET /api/bookings`,
+  `POST /api/bookings`, `PATCH /api/bookings/{id}`, and
+  `DELETE /api/bookings/{id}`. Opens a connection, calls `db.py`,
+  and serializes the result as JSON. Runs `init_db` + `seed_if_empty`
+  once at startup.
+- **Data (`backend/app/db.py`)**: framework-free SQL. Owns the
+  schema, the city-search join, the booking history join, and every
+  create/update/delete. Generates new booking IDs by continuing the
+  existing `B###` numbering so seeded IDs are never reused.
+- **Persistence (`backend/data/expedia_lite.db`)**: a SQLite file.
+  `seed_if_empty` checks whether the `hotels` table already has rows
+  before inserting the CSV data, so restarting the app — or just
+  re-running `init_db` — never duplicates or reloads the starters.
 
 ## Why this split
 
-City search is a decision (case-insensitive match, empty-result
-handling) that belongs in the logic layer, not the interface. The
-interface never parses CSVs or knows about `hotel_id` — it only
-reads the JSON fields the API already joined.
+Booking is a decision (assign a new unique ID, default status
+`confirmed`, keep the record on cancel) that belongs in the data
+layer, not the interface or the API layer. The frontend never
+constructs a booking ID or writes SQL; it only sends `{user_id,
+trip_id}` and displays whatever the backend returns.
 
-## Part 2 preview
+## Changes since Part 1
 
-SQLite will replace the CSVs as the source of truth after an initial
-seed. FastAPI will gain `POST /api/bookings` (create), the existing
-search response already supports read, `PATCH` for status updates
-(cancel), and `DELETE` for removing a test booking. The frontend
-gains a booking action and a history view; the search UI is
-unchanged.
+- Replaced direct CSV reads in the search path with SQLite reads
+  (`db.search_trips_by_city`); `data.py`'s CSV loaders are now used
+  only for the one-time seed.
+- Added `users`, and re-used `bookings`, as SQLite tables seeded
+  from `users.csv` and `bookings.csv`.
+- Added booking CRUD endpoints and the corresponding UI (booking
+  form in search results, a new Booking History tab).
+- Added `docs/verification.md` entries and `tests/test_db.py` for
+  the new persistence behavior, including a restart test.

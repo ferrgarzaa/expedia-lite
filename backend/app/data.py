@@ -12,6 +12,8 @@ from typing import Optional
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 HOTELS_CSV = DATA_DIR / "hotels.csv"
 TRIPS_CSV = DATA_DIR / "trips.csv"
+USERS_CSV = DATA_DIR / "users.csv"
+BOOKINGS_CSV = DATA_DIR / "bookings.csv"
 
 
 def load_hotels(path: Path = HOTELS_CSV) -> list[dict]:
@@ -22,6 +24,18 @@ def load_hotels(path: Path = HOTELS_CSV) -> list[dict]:
 
 def load_trips(path: Path = TRIPS_CSV) -> list[dict]:
     """Read trips.csv and return one dict per trip row."""
+    with open(path, newline="", encoding="utf-8-sig") as f:
+        return list(csv.DictReader(f))
+
+
+def load_users(path: Path = USERS_CSV) -> list[dict]:
+    """Read users.csv and return one dict per demo traveler row."""
+    with open(path, newline="", encoding="utf-8-sig") as f:
+        return list(csv.DictReader(f))
+
+
+def load_bookings(path: Path = BOOKINGS_CSV) -> list[dict]:
+    """Read bookings.csv and return one dict per seeded booking row."""
     with open(path, newline="", encoding="utf-8-sig") as f:
         return list(csv.DictReader(f))
 
