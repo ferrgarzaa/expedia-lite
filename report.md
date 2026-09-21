@@ -2,7 +2,7 @@
 
 ## Repository and commit
 
-https://github.com/ferrgarzaa/expedia-lite at commit `2059c2db2f6da8be10f432300dd5cff21bf300c8`
+https://github.com/ferrgarzaa/expedia-lite at commit `753b3a0`
 
 Part 2 was developed on the feature branch `part2-hotel-search-mvc`, reviewed
 and checked, then merged into `main`; the commit above is the merged
