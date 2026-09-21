@@ -2,9 +2,9 @@
 
 ## Repository and commit
 
-https://github.com/ferrgarzaa/expedia-lite at commit `REPLACE_WITH_PART2_COMMIT_HASH`
+https://github.com/ferrgarzaa/expedia-lite at commit `2059c2db2f6da8be10f432300dd5cff21bf300c8`
 
-Part 2 was developed on the feature branch `part2-sqlite-crud`, reviewed
+Part 2 was developed on the feature branch `part2-hotel-search-mvc`, reviewed
 and checked, then merged into `main`; the commit above is the merged
 final commit on `main`. The Part 1 checkpoint is preserved at commit
 `09efad52247680bd90789f204b2bba2cef2bbc85`.
