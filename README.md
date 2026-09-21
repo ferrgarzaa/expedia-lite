@@ -1,39 +1,65 @@
 # Expedia Lite
 
-A small local travel application built for ETI 300W Assignment 1.
-Part 1 added city search over the sample CSVs. Part 2 adds a SQLite
-database (seeded once from those same CSVs), simulated booking, and
-booking history with cancel/delete, all performed through the
-frontend.
+A small local travel application built for IST 402 Assignment 1.
+
+- **Part 1** — search hotel stays by hotel name.
+- **Part 2** — the same search backed by SQLite, plus simulated booking
+  and booking history with full create / read / update / delete through
+  the interface.
 
 ## Architecture
 
-- **`backend/`** — Python + FastAPI.
-  - `app/data.py` — framework-free CSV readers, used only to seed
-    the database the first time it runs. No FastAPI or SQL code.
-  - `app/db.py` — framework-free SQLite layer: schema, one-time
-    seeding, city search, and booking create/read/update/delete.
-    No FastAPI or HTTP code.
-  - `app/main.py` — FastAPI paths only. Opens a connection, calls
-    `db.py`, and returns JSON. Handles CORS for the local Vue dev
-    server and runs `init_db` + `seed_if_empty` on startup.
-  - `data/` — the supplied sample CSVs (seed source) and the
-    generated `expedia_lite.db` (git-ignored; created on first run).
-  - `tests/` — pytest suite for the CSV join logic (`test_data.py`)
-    and the SQLite layer (`test_db.py`), including a restart test
-    that confirms seeding never duplicates data.
-- **`frontend/`** — Vue 3 + Vite, two tabs (no router dependency):
-  - `TripSearch.vue` — city search, results table, and an inline
-    "Book" form per row (choose a traveler, confirm).
-  - `BookingHistory.vue` — booking history table with Cancel
-    (keeps the record, marks it cancelled) and Delete actions.
+The backend follows the **Model–View–Controller** split discussed in
+class.
 
-The two layers communicate through JSON over HTTP; the frontend has
-no knowledge of the database file or how the join/seeding works.
+| Layer | Where it lives | What it owns |
+| --- | --- | --- |
+| **Model** | `backend/app/models.py` | The records and the relationships between them: `Hotel`, `Trip`, `User`, `Booking`, plus the joined `StayOffer` and `BookingRecord` views. Plain Python; no SQL, no HTTP. |
+| **View** | `frontend/` (Vue 3) | The interface: search form, results table, booking form, booking history, status badges, and every message the traveler reads. Talks to the backend only through `frontend/src/api.js`. |
+| **Controller** | `backend/app/controllers/` | The only code that touches SQLite. `travel_controller.py` reads hotels, stays, and travelers; `booking_controller.py` performs booking CRUD. |
+| Storage | `backend/app/database.py` | Connection, schema, and the one-time seed from the sample CSVs. No CRUD of its own. |
+| Communication | `backend/app/main.py` (FastAPI) | HTTP paths only. Receives requests, calls a controller, returns JSON. Contains no search, join, or CRUD logic. |
+
+```
+Vue view  ──fetch JSON──▶  FastAPI paths  ──▶  controllers  ──▶  SQLite
+                                                    │
+                                                    ▼
+                                                  models
+```
+
+### Data and seeding
+
+`backend/data/` holds the supplied sample CSVs (`hotels.csv`,
+`trips.csv`, `users.csv`, `bookings.csv`) and the SQLite file
+`expedia_lite.db`, which is created on first run.
+
+On startup the app runs `init_db()` and then `seed_if_empty()`.
+`seed_if_empty` checks whether the `hotels` table already holds rows and
+returns immediately if it does, so:
+
+- the starter records are inserted exactly once;
+- restarting the backend never duplicates or reloads them;
+- bookings added, cancelled, or deleted through the interface survive a
+  browser refresh and a full restart of both servers.
+
+The CSVs are the *initial* data, not a limit: new bookings are stored in
+SQLite with fresh `B###` ids that never collide with the seeded ones.
+
+### API
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/search?hotel=<name>` | Search offered stays by hotel name |
+| `GET` | `/api/stays` | Every offered stay |
+| `GET` | `/api/users` | Demo travelers for the booking form |
+| `GET` | `/api/bookings` | **Read** — booking history |
+| `POST` | `/api/bookings` | **Create** — book a stay |
+| `PATCH` | `/api/bookings/{id}` | **Update** — cancel (record retained) |
+| `DELETE` | `/api/bookings/{id}` | **Delete** — remove the record |
 
 ## Requirements
 
-- Python 3.9+ (tested on 3.9 and 3.12)
+- Python 3.10+
 - Node.js 20+ and npm
 
 ## Setup and run
@@ -44,14 +70,12 @@ no knowledge of the database file or how the join/seeding works.
 cd backend
 python3 -m venv .venv
 ./.venv/bin/pip install -r requirements.txt
-./.venv/bin/pytest              # run tests
+./.venv/bin/pytest                                   # run tests
 ./.venv/bin/uvicorn app.main:app --reload --port 8000
 ```
 
-Backend runs at `http://127.0.0.1:8000`. Interactive docs at
-`http://127.0.0.1:8000/docs`. On first startup it creates
-`backend/data/expedia_lite.db` and seeds it from the CSVs; every
-later startup reuses that file without reseeding.
+Backend runs at `http://127.0.0.1:8000`; interactive docs at
+`http://127.0.0.1:8000/docs`.
 
 ### Frontend
 
@@ -59,32 +83,50 @@ later startup reuses that file without reseeding.
 cd frontend
 npm install
 npm run lint
-npm run build   # production build check
+npm run build          # production build check
 npm run dev -- --port 5173
 ```
 
-Frontend runs at `http://127.0.0.1:5173`. Open it in a browser:
-search a city on the "Search & Book" tab, or view/cancel/delete
-reservations on the "Booking History" tab.
+Frontend runs at `http://127.0.0.1:5173`. Type a hotel name (for example
+`Harbor Lantern Hotel`), click **Search**, then **Book** a stay and open
+the **Booking history** tab to cancel or delete it.
+
+## Interface
+
+The Part 2 interface applies the UI research approach from In-class
+Activity 2:
+
+- one set of design tokens in `frontend/src/assets/main.css`, so both
+  tabs read as one product;
+- one clear primary action per view, with destructive actions outlined
+  in red and behind a confirmation step;
+- every action answered by a visible message (created, cancelled,
+  deleted, or the reason it failed);
+- explicit loading, empty, and no-results states instead of a blank
+  screen;
+- status shown as a labelled badge (`Confirmed` / `Cancelled`) rather
+  than colour alone, with visible focus rings and table headers scoped
+  for screen readers.
 
 ## Current implementation status
 
-- [x] Part 1: city search over `hotels.csv` + `trips.csv`, joined by
+- [x] Part 1: hotel-name search over hotels and trips joined by
       `hotel_id`, returned as JSON and rendered in a results table.
-- [x] Clear "no results" message for a city with no matches.
-- [x] Part 2: SQLite seeded once from the CSVs; booking
-      create/read/update(cancel)/delete performed through the
-      frontend; changes and the seeded data both survive a restart
-      without duplication.
+- [x] Clear "no results" message for a hotel name with no matches.
+- [x] Part 2: SQLite seeded once; booking create, read, update (cancel),
+      and delete performed through the frontend.
+- [x] Changes persist across a browser refresh and a restart of both
+      servers, with no duplicated starter records.
 
 ## Known limitations
 
-- City matching is case-insensitive but requires the full city name
-  (no partial/fuzzy matching yet).
-- No authentication; `users.csv` travelers are demo identities
-  selected from a dropdown, not logged-in accounts.
-- Deleting the SQLite file (`backend/data/expedia_lite.db`) resets
-  the app back to the seeded starter data on the next startup.
+- No authentication; travelers are chosen from a dropdown of the seeded
+  demo users (the optional bonus was not attempted).
+- Surge pricing is not implemented; the stay price is
+  `nights × nightly_rate_usd`.
+- Deleting `backend/data/expedia_lite.db` resets the app to the seeded
+  starter data on the next run. This is expected behaviour.
 
-See `docs/design-note.md` for layer responsibilities and
+See `docs/design-note.md` for layer responsibilities,
+`docs/verification.md` for the checks that were run, and
 `handoffs/current.md` for the latest status and next task.

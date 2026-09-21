@@ -6,20 +6,26 @@ project. Read this and `README.md` before making changes.
 ## Project rules
 
 - Keep frontend and backend responsibilities separate. The frontend
-  never reads CSV/SQLite data directly; it only calls the FastAPI
-  JSON endpoints.
+  never reads SQLite or the CSV files directly; it only calls the
+  FastAPI JSON endpoints through `frontend/src/api.js`.
+- Respect the Model–View–Controller split:
+  - records and relationships live in `backend/app/models.py`;
+  - **every** SQL statement lives in `backend/app/controllers/`;
+  - `backend/app/main.py` handles HTTP only — no SQL, no join logic;
+  - `backend/app/database.py` owns connection, schema, and seeding, and
+    performs no CRUD.
 - Do not add dependencies without approval. Follow CHECK → TAKE
   ACTION → VERIFY before installing anything.
 - Do not use blue buttons.
 - Keep changes within the requested scope.
-- When tests exist, run them before reporting completion
-  (`backend/.venv/bin/pytest`, `npm run lint`, `npm run build`).
+- Run the checks before reporting completion (`backend/.venv/bin/pytest`,
+  `npm run lint`, `npm run build`).
 - Report every file changed and any check that was not run.
 - Preserve existing record IDs (`hotel_id`, `trip_id`, `user_id`,
   `booking_id`); assign new unique IDs to new records.
-- For Part 2: seed SQLite once. Restarting the app must not
-  duplicate or reset the starter records, and must preserve any
-  bookings added, updated, or deleted through the app.
+- Seed SQLite once. Restarting the app must not duplicate or reset the
+  starter records, and must preserve any bookings added, updated, or
+  deleted through the app.
 
 ## AUTOLOOP MACRO
 
@@ -44,21 +50,24 @@ Trigger: "Run the smoke test"
 3. Run the frontend lint and production build.
 4. Start only the backend (port 8000) and frontend (port 5173)
    processes needed for this test.
-5. Verify `GET /api/search?city=Boston` returns 4 trips
-   (T001, T002, T009, T010) and `GET /api/search?city=Miami`
-   returns 0.
-6. Through the visible interface, search "Boston" and confirm the
-   results table shows 4 rows; search "Miami" and confirm the
-   no-results message appears.
-7. Create a booking through the interface, confirm it appears in
-   Booking History, cancel it (record stays, status changes), then
-   delete it (row disappears).
-8. Restart the backend and frontend against the same database file
-   and confirm the seeded rows appear exactly once and no prior
-   change was lost.
-9. Stop only the processes created by this smoke test.
-10. Report concise evidence: tests, static checks, API responses, UI
-    behavior, and cleanup.
+5. Verify the API:
+   - `GET /api/search?hotel=Harbor Lantern Hotel` returns 2 stays
+     (`T001`, `T009`);
+   - `GET /api/search?hotel=Hotel Miami` returns 0;
+   - `GET /api/bookings` returns the seeded history.
+6. Through the visible interface:
+   - search a hotel name and confirm the results table;
+   - search a hotel name with no matches and confirm the message;
+   - **create** a booking and confirm the confirmation message;
+   - **read** it in Booking history;
+   - **update** it by cancelling and confirm the record is retained
+     with status Cancelled;
+   - **delete** it and confirm other bookings are untouched.
+7. Refresh the browser and restart both servers; confirm the changes
+   persist and the starter records are not duplicated or reloaded.
+8. Stop only the processes created by this smoke test.
+9. Report concise evidence: tests, static checks, API responses, UI
+   behavior, persistence, and cleanup.
 
 ## COMBINED TRIGGER
 
