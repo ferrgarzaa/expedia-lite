@@ -1,253 +1,245 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { cancelBooking, deleteBooking, listBookings } from '../api.js'
 
-const API_BASE = 'http://127.0.0.1:8000'
+const props = defineProps({
+  reloadKey: { type: Number, default: 0 },
+})
 
 const bookings = ref([])
-const errorMessage = ref('')
-const actionMessage = ref('')
 const isLoading = ref(false)
+const errorMessage = ref('')
+const statusMessage = ref('')
+const busyBooking = ref('')
+const pendingDelete = ref('')
 
-async function loadBookings() {
+const confirmedCount = computed(
+  () => bookings.value.filter((b) => b.status === 'confirmed').length,
+)
+
+async function load() {
   isLoading.value = true
   errorMessage.value = ''
   try {
-    const response = await fetch(`${API_BASE}/api/bookings`)
-    if (!response.ok) {
-      throw new Error('Failed to load bookings')
-    }
-    bookings.value = await response.json()
-  } catch {
-    errorMessage.value = 'Could not load booking history. Please try again.'
+    const data = await listBookings()
+    bookings.value = data.results
+  } catch (error) {
+    errorMessage.value = error.message
   } finally {
     isLoading.value = false
   }
 }
 
-onMounted(loadBookings)
+onMounted(load)
+watch(() => props.reloadKey, load)
 
-async function cancelBooking(bookingId) {
-  actionMessage.value = ''
+async function onCancel(booking) {
+  errorMessage.value = ''
+  statusMessage.value = ''
+  busyBooking.value = booking.booking_id
   try {
-    const response = await fetch(`${API_BASE}/api/bookings/${bookingId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'cancelled' }),
-    })
-    if (!response.ok) {
-      throw new Error('Cancel failed')
-    }
-    actionMessage.value = `Booking ${bookingId} cancelled.`
-    await loadBookings()
-  } catch {
-    actionMessage.value = `Could not cancel booking ${bookingId}.`
+    await cancelBooking(booking.booking_id)
+    statusMessage.value =
+      `Booking ${booking.booking_id} cancelled. The record stays in your history.`
+    await load()
+  } catch (error) {
+    errorMessage.value = error.message
+  } finally {
+    busyBooking.value = ''
   }
 }
 
-async function deleteBooking(bookingId) {
-  actionMessage.value = ''
+function askDelete(bookingId) {
+  statusMessage.value = ''
+  errorMessage.value = ''
+  pendingDelete.value = pendingDelete.value === bookingId ? '' : bookingId
+}
+
+async function onDelete(booking) {
+  errorMessage.value = ''
+  statusMessage.value = ''
+  busyBooking.value = booking.booking_id
   try {
-    const response = await fetch(`${API_BASE}/api/bookings/${bookingId}`, {
-      method: 'DELETE',
-    })
-    if (!response.ok) {
-      throw new Error('Delete failed')
-    }
-    actionMessage.value = `Booking ${bookingId} deleted.`
-    await loadBookings()
-  } catch {
-    actionMessage.value = `Could not delete booking ${bookingId}.`
+    await deleteBooking(booking.booking_id)
+    statusMessage.value = `Booking ${booking.booking_id} deleted permanently.`
+    pendingDelete.value = ''
+    await load()
+  } catch (error) {
+    errorMessage.value = error.message
+  } finally {
+    busyBooking.value = ''
   }
+}
+
+function money(value) {
+  return `$${Number(value).toFixed(2)}`
 }
 </script>
 
 <template>
-  <section class="booking-history">
-    <h1>Booking History</h1>
-    <p class="tagline">All simulated reservations, oldest to newest.</p>
+  <section class="panel" aria-labelledby="history-heading">
+    <div class="panel-head">
+      <div>
+        <h2 id="history-heading">Booking history</h2>
+        <p class="panel-hint">
+          Cancel keeps the record and marks it cancelled. Delete removes it for good.
+        </p>
+      </div>
+      <button type="button" class="btn btn--ghost" :disabled="isLoading" @click="load">
+        {{ isLoading ? 'Refreshing…' : 'Refresh' }}
+      </button>
+    </div>
 
-    <button type="button" class="refresh-button" @click="loadBookings" :disabled="isLoading">
-      {{ isLoading ? 'Refreshing…' : 'Refresh' }}
-    </button>
-
-    <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
-    <p v-if="actionMessage" class="action-message" role="status">{{ actionMessage }}</p>
-
-    <p v-if="!isLoading && bookings.length === 0" class="no-results">
-      No bookings yet.
+    <p v-if="errorMessage" class="banner banner--error" role="alert">
+      {{ errorMessage }}
+    </p>
+    <p v-if="statusMessage" class="banner banner--success" role="status">
+      {{ statusMessage }}
     </p>
 
-    <table v-else-if="bookings.length > 0" class="history-table">
-      <caption class="visually-hidden">Booking history</caption>
-      <thead>
-        <tr>
-          <th scope="col">Booking</th>
-          <th scope="col">Traveler</th>
-          <th scope="col">Trip</th>
-          <th scope="col">Hotel</th>
-          <th scope="col">Dates</th>
-          <th scope="col">Booked on</th>
-          <th scope="col">Status</th>
-          <th scope="col">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="b in bookings" :key="b.booking_id">
-          <td>{{ b.booking_id }}</td>
-          <td>{{ b.display_name }}</td>
-          <td>{{ b.trip_name }}</td>
-          <td>{{ b.hotel_name }} ({{ b.city }}, {{ b.state }})</td>
-          <td>{{ b.check_in }} → {{ b.check_out }}</td>
-          <td>{{ b.booked_on }}</td>
-          <td>
-            <span class="status" :class="b.status">{{ b.status }}</span>
-          </td>
-          <td class="actions">
-            <button
-              v-if="b.status !== 'cancelled'"
-              type="button"
-              class="cancel-button"
-              @click="cancelBooking(b.booking_id)"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              class="delete-button"
-              @click="deleteBooking(b.booking_id)"
-            >
-              Delete
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <p v-if="isLoading && bookings.length === 0" class="state-message">
+      Loading your bookings…
+    </p>
+
+    <p
+      v-else-if="bookings.length === 0"
+      class="state-message state-message--empty"
+    >
+      No bookings yet. Search for a hotel and book a stay to see it here.
+    </p>
+
+    <div v-else class="results">
+      <p class="results-count">
+        {{ bookings.length }} booking{{ bookings.length === 1 ? '' : 's' }},
+        {{ confirmedCount }} confirmed.
+      </p>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <caption class="visually-hidden">Your bookings</caption>
+          <thead>
+            <tr>
+              <th scope="col">Booking</th>
+              <th scope="col">Traveler</th>
+              <th scope="col">Stay</th>
+              <th scope="col">Dates</th>
+              <th scope="col" class="num">Total</th>
+              <th scope="col">Booked on</th>
+              <th scope="col">Status</th>
+              <th scope="col"><span class="visually-hidden">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <template v-for="booking in bookings" :key="booking.booking_id">
+              <tr>
+                <th scope="row" class="id-cell">{{ booking.booking_id }}</th>
+                <td class="nowrap">{{ booking.traveler }}</td>
+                <td>
+                  {{ booking.hotel_name }}<br />
+                  <small>{{ booking.trip_name }} · {{ booking.city }}, {{ booking.state }}</small>
+                </td>
+                <td class="nowrap">{{ booking.check_in }}<br />→ {{ booking.check_out }}</td>
+                <td class="num strong">{{ money(booking.stay_price_usd) }}</td>
+                <td class="nowrap">{{ booking.booked_on }}</td>
+                <td>
+                  <span class="badge" :class="`badge--${booking.status}`">
+                    {{ booking.status === 'confirmed' ? 'Confirmed' : 'Cancelled' }}
+                  </span>
+                </td>
+                <td>
+                  <div class="actions">
+                    <button
+                      type="button"
+                      class="btn btn--ghost btn--small"
+                      :disabled="booking.status === 'cancelled' || busyBooking === booking.booking_id"
+                      @click="onCancel(booking)"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn--danger btn--small"
+                      :disabled="busyBooking === booking.booking_id"
+                      @click="askDelete(booking.booking_id)"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+
+              <tr v-if="pendingDelete === booking.booking_id" class="confirm-row">
+                <td colspan="8">
+                  <div class="confirm">
+                    <span>
+                      Delete booking <strong>{{ booking.booking_id }}</strong>
+                      permanently? This cannot be undone.
+                    </span>
+                    <button
+                      type="button"
+                      class="btn btn--danger btn--small"
+                      :disabled="busyBooking === booking.booking_id"
+                      @click="onDelete(booking)"
+                    >
+                      {{ busyBooking === booking.booking_id ? 'Deleting…' : 'Yes, delete' }}
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn--ghost btn--small"
+                      @click="pendingDelete = ''"
+                    >
+                      Keep it
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </section>
 </template>
 
 <style scoped>
-.booking-history {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 2rem 1rem;
-  font-family: system-ui, sans-serif;
+.panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
-.tagline {
-  color: #555;
-  margin-bottom: 1rem;
+.results-count {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 1rem 0 0.6rem;
 }
 
-.refresh-button {
-  padding: 0.45rem 1rem;
-  font-size: 0.95rem;
-  background: #eee;
-  color: #333;
-  border: 1px solid #999;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-bottom: 1rem;
-}
-
-.refresh-button:hover:not(:disabled) {
-  background: #ddd;
-}
-
-.refresh-button:focus-visible,
-.cancel-button:focus-visible,
-.delete-button:focus-visible {
-  outline: 3px solid #1f7a4d;
-  outline-offset: 2px;
-}
-
-.error {
-  color: #9b1c1c;
-  font-weight: 600;
-}
-
-.action-message {
-  color: #1f7a4d;
-  font-weight: 600;
-}
-
-.no-results {
-  color: #444;
-  font-style: italic;
-}
-
-.history-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.history-table th,
-.history-table td {
+.id-cell {
   text-align: left;
-  padding: 0.5rem 0.6rem;
-  border-bottom: 1px solid #ddd;
-  vertical-align: top;
-}
-
-.history-table th {
-  background: #f2f2f2;
-}
-
-.status {
-  display: inline-block;
-  padding: 0.15rem 0.5rem;
-  border-radius: 999px;
-  font-size: 0.85rem;
-  text-transform: capitalize;
-}
-
-.status.confirmed {
-  background: #e3f3ea;
-  color: #1f7a4d;
-}
-
-.status.cancelled {
-  background: #f3e3e3;
-  color: #9b1c1c;
+  font-variant-numeric: tabular-nums;
 }
 
 .actions {
+  display: flex;
+  gap: 0.4rem;
   white-space: nowrap;
 }
 
-.cancel-button,
-.delete-button {
-  padding: 0.35rem 0.75rem;
-  font-size: 0.85rem;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-right: 0.4rem;
+.confirm-row td {
+  background: var(--danger-soft);
 }
 
-.cancel-button {
-  background: #eee;
-  color: #333;
-  border: 1px solid #999;
+.confirm {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.25rem 0;
 }
 
-.cancel-button:hover {
-  background: #ddd;
-}
-
-.delete-button {
-  background: #fff;
-  color: #9b1c1c;
-  border: 1px solid #9b1c1c;
-}
-
-.delete-button:hover {
-  background: #fbe9e9;
-}
-
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
+small {
+  color: var(--text-muted);
 }
 </style>

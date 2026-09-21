@@ -1,48 +1,59 @@
-# Selected Prompts — Part 2 (SQLite CRUD)
+# Selected prompts — Part 2 (SQLite CRUD)
 
-## SQLite schema and one-time seed
+The prompts that shaped Part 2, in the order they were used. Each one
+was followed by a manual review of the diff in VS Code before the work
+was kept.
 
-In `backend/app/db.py`, create framework-free functions that:
-- define a schema for `hotels`, `trips`, `users`, `bookings`
-  matching the CSV columns;
-- create tables if they do not exist (`init_db`);
-- seed from the CSVs only if the `hotels` table is empty
-  (`seed_if_empty`), so restarting the app never duplicates or
-  reloads the starter records.
-Do not add FastAPI code in this file.
+## 1. Storage and seeding
 
-## Search over SQLite
+> Move persistence from the CSVs to SQLite in `backend/`. Create a
+> `database.py` that owns the connection, the schema for `hotels`,
+> `trips`, `users`, and `bookings`, and a `seed_if_empty()` that loads
+> the four supplied CSVs **once**. Seeding must check whether the tables
+> already hold rows and return without touching anything if they do, so
+> restarting the app never duplicates or reloads the starter records.
+> Preserve the supplied ids exactly as they appear in the CSVs.
 
-Move the city search join from reading CSVs directly to a SQL query
-joining `trips` to `hotels`, case-insensitive, preserving the same
-response shape used in Part 1.
+## 2. Model–View–Controller
 
-## Booking CRUD
+> Restructure the backend into the Model–View–Controller split we
+> discussed in class. Put the records and their relationships in
+> `app/models.py` (`Hotel`, `Trip`, `User`, `Booking`, plus joined views
+> for a stay and a booking). Put every SQL statement in
+> `app/controllers/`, with a database controller that performs booking
+> CRUD. `main.py` must stay a thin FastAPI layer: validate, call one
+> controller function, return JSON — no SQL and no join logic.
 
-Add functions to `db.py` for: creating a booking with a new unique
-`B###` ID that continues the existing numbering; listing all
-bookings joined with traveler and trip/hotel details for history;
-updating a booking's status (e.g. to `cancelled`) while keeping the
-row; deleting a booking by ID. Preserve existing IDs; never reuse or
-renumber them.
+## 3. Search by hotel name
 
-## FastAPI endpoints
+> The requirement changed: the search input takes a **hotel name**, not
+> a city. Update the controller, the FastAPI path
+> (`GET /api/search?hotel=...`), and the Vue form and labels. Matching
+> should be case-insensitive and should also accept part of a name.
+> Keep the distinct "no results" message.
 
-Expose `GET /api/users`, `GET /api/bookings`, `POST /api/bookings`,
-`PATCH /api/bookings/{id}`, `DELETE /api/bookings/{id}` in
-`backend/app/main.py`. Run `init_db` + `seed_if_empty` once on
-startup. Keep all SQL and join logic in `db.py`.
+## 4. CRUD through the interface
 
-## Backend tests
+> Add booking to the search results and a Booking history tab. All four
+> CRUD actions must happen through the frontend: create a booking, read
+> it back in history, update its status to cancel it **while keeping the
+> record**, and delete a test booking. New bookings must get unique ids
+> that continue the `B###` sequence without reusing a seeded one.
 
-Add a pytest suite for `db.py` covering seeding idempotency, search,
-create/read/update/delete, and a restart simulation (open the same
-DB file twice, confirm no duplicate seeding and that changes persist).
+## 5. Interface quality
 
-## Frontend booking UI
+> Improve the appearance and usability of the interface using the UI
+> research approach from In-class Activity 2. Use one set of design
+> tokens across both tabs, one clear primary action per view, explicit
+> loading / empty / no-results states, a visible confirmation or error
+> message after every action, a confirmation step before deleting, and
+> status shown as a labelled badge rather than colour alone. Keep focus
+> rings visible and table headers scoped. Do not use blue buttons.
 
-Add an inline "Book" form to each search result row (traveler
-dropdown fetched from `/api/users`, Confirm button) and a new
-"Booking History" tab/component with a table plus Cancel and Delete
-actions per row, wired to the new endpoints. No router dependency;
-switch tabs with local component state. No blue buttons.
+## 6. Verification
+
+> Run the backend tests, the frontend lint, and the production build.
+> Then, through the browser, demonstrate each CRUD action on a record
+> added after seeding, and verify the changes survive a browser refresh
+> and a restart of both servers with no duplicated starter records.
+> Record expected and observed results in `docs/verification.md`.

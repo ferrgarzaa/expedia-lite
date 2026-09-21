@@ -1,35 +1,284 @@
-@import './base.css';
+/*
+ * Expedia Lite — global styles.
+ *
+ * Part 2 applies the UI research approach from In-class Activity 2:
+ * a single set of design tokens (colour, spacing, radius, shadow) so
+ * every screen looks like one product; one clear primary action per
+ * view; status shown by a labelled badge rather than colour alone;
+ * visible focus rings and a minimum 4.5:1 text contrast ratio.
+ */
 
-#app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  font-weight: normal;
+:root {
+  --page-width: 76rem;
+
+  --bg: #f6f7f5;
+  --surface: #ffffff;
+  --surface-muted: #f0f2ef;
+  --line: #d9ddd6;
+
+  --text: #1c211d;
+  --text-muted: #5a635c;
+
+  --accent: #1f7a4d;
+  --accent-dark: #17603c;
+  --accent-soft: #e6f2ec;
+
+  --danger: #9b1c1c;
+  --danger-dark: #7f1616;
+  --danger-soft: #fdeaea;
+
+  --radius: 0.5rem;
+  --shadow: 0 1px 2px rgba(28, 33, 29, 0.06), 0 6px 18px rgba(28, 33, 29, 0.06);
 }
 
-a,
-.green {
-  text-decoration: none;
-  color: hsla(160, 100%, 37%, 1);
-  transition: 0.4s;
-  padding: 3px;
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
-@media (hover: hover) {
-  a:hover {
-    background-color: hsla(160, 100%, 37%, 0.2);
-  }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
 }
 
-@media (min-width: 1024px) {
-  body {
-    display: flex;
-    place-items: center;
-  }
+h1,
+h2,
+h3 {
+  line-height: 1.25;
+}
 
-  #app {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    padding: 0 2rem;
-  }
+code {
+  background: var(--surface-muted);
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.25rem;
+  font-size: 0.9em;
+}
+
+/* ---------------------------------------------------------- panels */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: clamp(1rem, 3vw, 1.75rem);
+}
+
+.panel h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.panel-hint {
+  margin: 0.3rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+}
+
+/* --------------------------------------------------------- controls */
+input,
+select {
+  padding: 0.55rem 0.7rem;
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+input:hover,
+select:hover {
+  border-color: var(--text-muted);
+}
+
+.btn {
+  appearance: none;
+  font: inherit;
+  font-weight: 600;
+  padding: 0.55rem 1.1rem;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.btn--small {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.88rem;
+}
+
+.btn--primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+.btn--primary:hover:not(:disabled) {
+  background: var(--accent-dark);
+}
+
+.btn--ghost {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.btn--ghost:hover:not(:disabled) {
+  background: var(--surface-muted);
+}
+
+.btn--danger {
+  background: var(--surface);
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.btn--danger:hover:not(:disabled) {
+  background: var(--danger-soft);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+:where(button, input, select, a):focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--accent-dark);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ---------------------------------------------------------- banners */
+.banner {
+  margin: 1rem 0 0;
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--radius);
+  border-left: 4px solid;
+  font-weight: 500;
+}
+
+.banner--error {
+  background: var(--danger-soft);
+  border-left-color: var(--danger);
+  color: var(--danger-dark);
+}
+
+.banner--success {
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
+  color: var(--accent-dark);
+}
+
+/* ---------------------------------------------------- state messages */
+.state-message {
+  margin: 1.25rem 0 0;
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--surface-muted);
+  border-radius: var(--radius);
+}
+
+.state-message--idle {
+  border: 1px dashed var(--line);
+  background: transparent;
+}
+
+/* ----------------------------------------------------------- tables */
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.94rem;
+}
+
+.data-table th,
+.data-table td {
+  text-align: left;
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+
+.data-table thead th {
+  background: var(--surface-muted);
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.data-table tbody tr:last-child td,
+.data-table tbody tr:last-child th {
+  border-bottom: none;
+}
+
+.data-table tbody tr:hover td {
+  background: var(--accent-soft);
+}
+
+.data-table .nowrap {
+  white-space: nowrap;
+}
+
+.data-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.data-table .strong {
+  font-weight: 700;
+}
+
+/* ----------------------------------------------------------- badges */
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border: 1px solid;
+  white-space: nowrap;
+}
+
+.badge--confirmed {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-dark);
+}
+
+.badge--cancelled {
+  background: var(--surface-muted);
+  border-color: var(--text-muted);
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+/* ------------------------------------------------------ accessibility */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
 }

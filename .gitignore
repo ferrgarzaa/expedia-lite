@@ -3,3 +3,8 @@ backend/__pycache__/
 backend/**/__pycache__/
 backend/.pytest_cache/
 backend/data/expedia_lite.db
+
+frontend/node_modules/
+frontend/dist/
+frontend/.eslintcache
+.DS_Store
