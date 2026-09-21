@@ -125,7 +125,7 @@ A demo under three minutes showing a traveler searching for a hotel,
 booking a stay, reading it back in history, cancelling it, and deleting
 it:
 
-REPLACE_WITH_VIDEO_LINK
+https://youtu.be/msh7j5xQrwc
 
 ## Project context and next steps
 
