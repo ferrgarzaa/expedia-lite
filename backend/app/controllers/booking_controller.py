@@ -11,6 +11,7 @@ are preserved and every new record still gets a unique one.
 
 from datetime import date
 from pathlib import Path
+from typing import List, Optional, Union
 
 from app.controllers.travel_controller import get_stay, get_user
 from app.database import get_connection
@@ -53,8 +54,8 @@ def _next_booking_id(connection) -> str:
 
 # ---------------------------------------------------------------- READ
 def list_bookings(
-    user_id: str | None = None, db_path: Path | str | None = None
-) -> list[BookingRecord]:
+    user_id: Optional[str] = None, db_path: Optional[Union[Path, str]] = None
+) -> List[BookingRecord]:
     """Return booking history, newest first, optionally for one traveler."""
     sql = _HISTORY_SQL
     params: tuple = ()
@@ -69,8 +70,8 @@ def list_bookings(
 
 
 def get_booking(
-    booking_id: str, db_path: Path | str | None = None
-) -> BookingRecord | None:
+    booking_id: str, db_path: Optional[Union[Path, str]] = None
+) -> Optional[BookingRecord]:
     """Return one booking joined to its traveler and stay, or None."""
     with get_connection(db_path) as connection:
         row = connection.execute(
@@ -83,8 +84,8 @@ def get_booking(
 def create_booking(
     user_id: str,
     trip_id: str,
-    booked_on: str | None = None,
-    db_path: Path | str | None = None,
+    booked_on: Optional[str] = None,
+    db_path: Optional[Union[Path, str]] = None,
 ) -> BookingRecord:
     """Create a confirmed booking for a traveler and an offered stay."""
     if get_user(user_id, db_path) is None:
@@ -123,7 +124,7 @@ def create_booking(
 
 # -------------------------------------------------------------- UPDATE
 def update_booking_status(
-    booking_id: str, status: str, db_path: Path | str | None = None
+    booking_id: str, status: str, db_path: Optional[Union[Path, str]] = None
 ) -> BookingRecord:
     """Update a booking's status, keeping the record itself.
 
@@ -150,14 +151,14 @@ def update_booking_status(
 
 
 def cancel_booking(
-    booking_id: str, db_path: Path | str | None = None
+    booking_id: str, db_path: Optional[Union[Path, str]] = None
 ) -> BookingRecord:
     """Convenience wrapper: the cancel action used by the interface."""
     return update_booking_status(booking_id, Booking.CANCELLED, db_path)
 
 
 # -------------------------------------------------------------- DELETE
-def delete_booking(booking_id: str, db_path: Path | str | None = None) -> None:
+def delete_booking(booking_id: str, db_path: Optional[Union[Path, str]] = None) -> None:
     """Remove a booking row completely, leaving other records alone."""
     if get_booking(booking_id, db_path) is None:
         raise BookingError(f"Unknown booking {booking_id!r}.")

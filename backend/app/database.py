@@ -15,6 +15,7 @@ bookings added, cancelled, or deleted through the interface.
 import csv
 import sqlite3
 from pathlib import Path
+from typing import Optional, Union
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 DB_PATH = DATA_DIR / "expedia_lite.db"
@@ -51,12 +52,12 @@ CREATE TABLE IF NOT EXISTS bookings (
 """
 
 
-def resolve_db_path(db_path: Path | str | None = None) -> Path:
+def resolve_db_path(db_path: Optional[Union[Path, str]] = None) -> Path:
     """Return the database file to use, defaulting to the app database."""
     return Path(db_path) if db_path else DB_PATH
 
 
-def get_connection(db_path: Path | str | None = None) -> sqlite3.Connection:
+def get_connection(db_path: Optional[Union[Path, str]] = None) -> sqlite3.Connection:
     """Open a connection with dict-style rows and foreign keys enforced."""
     db_path = resolve_db_path(db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -66,7 +67,7 @@ def get_connection(db_path: Path | str | None = None) -> sqlite3.Connection:
     return connection
 
 
-def init_db(db_path: Path | str | None = None) -> None:
+def init_db(db_path: Optional[Union[Path, str]] = None) -> None:
     """Create the tables if they do not exist yet."""
     with get_connection(db_path) as connection:
         connection.executescript(SCHEMA)
@@ -77,14 +78,14 @@ def _read_csv(name: str) -> list[dict]:
         return list(csv.DictReader(handle))
 
 
-def is_seeded(db_path: Path | str | None = None) -> bool:
+def is_seeded(db_path: Optional[Union[Path, str]] = None) -> bool:
     """True when the starter records are already in the database."""
     with get_connection(db_path) as connection:
         count = connection.execute("SELECT COUNT(*) FROM hotels").fetchone()[0]
     return count > 0
 
 
-def seed_if_empty(db_path: Path | str | None = None) -> bool:
+def seed_if_empty(db_path: Optional[Union[Path, str]] = None) -> bool:
     """Seed the four tables from the sample CSVs, once.
 
     Returns True when this call inserted the starter records and False

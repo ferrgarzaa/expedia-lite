@@ -6,6 +6,7 @@ knows nothing about FastAPI or HTTP.
 """
 
 from pathlib import Path
+from typing import List, Optional, Union
 
 from app.database import get_connection
 from app.models import Hotel, StayOffer, Trip, User
@@ -23,8 +24,8 @@ def _offer_from_row(row) -> StayOffer:
 
 
 def search_stays_by_hotel_name(
-    hotel_name: str, db_path: Path | str | None = None
-) -> list[StayOffer]:
+    hotel_name: str, db_path: Optional[Union[Path, str]] = None
+) -> List[StayOffer]:
     """Return the stays offered by hotels whose name matches the query.
 
     Matching is case-insensitive and partial, so "harbor" finds
@@ -44,7 +45,7 @@ def search_stays_by_hotel_name(
     return [_offer_from_row(row) for row in rows]
 
 
-def get_stay(trip_id: str, db_path: Path | str | None = None) -> StayOffer | None:
+def get_stay(trip_id: str, db_path: Optional[Union[Path, str]] = None) -> Optional[StayOffer]:
     """Return one offered stay joined to its hotel, or None."""
     sql = _OFFER_SQL + " WHERE t.trip_id = ?"
     with get_connection(db_path) as connection:
@@ -52,7 +53,7 @@ def get_stay(trip_id: str, db_path: Path | str | None = None) -> StayOffer | Non
     return _offer_from_row(row) if row else None
 
 
-def list_stays(db_path: Path | str | None = None) -> list[StayOffer]:
+def list_stays(db_path: Optional[Union[Path, str]] = None) -> List[StayOffer]:
     """Return every offered stay joined to its hotel."""
     sql = _OFFER_SQL + " ORDER BY h.hotel_name, t.check_in"
     with get_connection(db_path) as connection:
@@ -60,7 +61,7 @@ def list_stays(db_path: Path | str | None = None) -> list[StayOffer]:
     return [_offer_from_row(row) for row in rows]
 
 
-def list_users(db_path: Path | str | None = None) -> list[User]:
+def list_users(db_path: Optional[Union[Path, str]] = None) -> List[User]:
     """Return the demo travelers, used to populate the booking form."""
     with get_connection(db_path) as connection:
         rows = connection.execute(
@@ -69,7 +70,7 @@ def list_users(db_path: Path | str | None = None) -> list[User]:
     return [User.from_row(row) for row in rows]
 
 
-def get_user(user_id: str, db_path: Path | str | None = None) -> User | None:
+def get_user(user_id: str, db_path: Optional[Union[Path, str]] = None) -> Optional[User]:
     with get_connection(db_path) as connection:
         row = connection.execute(
             "SELECT user_id, display_name FROM users WHERE user_id = ?",

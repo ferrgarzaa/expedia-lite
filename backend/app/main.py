@@ -6,6 +6,7 @@ join, or CRUD logic of its own, and it never touches SQLite directly.
 """
 
 from contextlib import asynccontextmanager
+from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -82,7 +83,7 @@ def users() -> dict:
 
 
 @app.get("/api/bookings")
-def read_bookings(user_id: str | None = None) -> dict:
+def read_bookings(user_id: Optional[str] = None) -> dict:
     """READ: booking history, optionally filtered to one traveler."""
     records = booking_controller.list_bookings(user_id)
     return {"count": len(records), "results": [r.to_dict() for r in records]}
