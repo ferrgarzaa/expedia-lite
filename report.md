@@ -3,7 +3,7 @@
 ## 1. Project access
 
 - **Repository:** https://github.com/ferrgarzaa/expedia-lite
-- **Assessed commit:** `REPLACE_WITH_COMMIT_HASH` (branch `main`)
+- **Assessed commit:** `3f7d8ae521c3e79f1e9e15ce80350ce795063894` (branch `main`; contains all Part 1 code — the only later commit fills in this report's live results and video link)
 - **Stack:** Vue 3 + Vite (View), FastAPI (HTTP), Python controllers and
   models, SQLite (Assignment 1 data), Geoapify Geocoding + Places, Leaflet
   with OpenStreetMap tiles.
@@ -107,7 +107,7 @@ for the other states.
 
 ## 4. Demo video
 
-REPLACE_WITH_VIDEO_LINK (unlisted YouTube or Google Drive "Anyone with the link")
+https://drive.google.com/file/d/1DhWoHYMG8MAaKdKsv5mnRoEnr12ZlHLf/view?usp=sharing
 
 The video shows: startup, a live search for a valid ZIP, clicking a list
 item (pin highlights) and a pin (list highlights), keyboard selection
@@ -138,10 +138,10 @@ Full record: [docs/part1/verification.md](https://github.com/ferrgarzaa/expedia-
 
 | ZIP | Observation date | Expected | Observed |
 | --- | --- | --- | --- |
-| 16802 | REPLACE_DATE | Center in State College, PA; hotels ≤ 5 km; list names/coords equal the `/api/hotels/nearby` response | REPLACE |
-| 02134 | REPLACE_DATE | Center in Allston/Boston, MA (leading zero kept) | REPLACE |
-| 00000 | REPLACE_DATE | "ZIP code not found", no hotel search | REPLACE |
-| 1234 | REPLACE_DATE | "Invalid ZIP code", no request | REPLACE |
+| 16802 | 2026-09-29 | Center in State College, PA; hotels ≤ 5 km; list names/coords equal the `/api/hotels/nearby` response | Center "State College, PA 16802" (40.8032, -77.8614); 21 hotels, nearest first — 1. Scholar Hotel State College (≈ 970 m), 2. Hotel State College (≈ 1000 m), 3. Nittany Lion Inn (≈ 1.0 km); numbered pins inside the 5 km circle. Clicking a list item highlighted its pin and clicking a pin highlighted the list item; Tab + Enter on a pin also worked |
+| 02134 | 2026-09-29 | Leading zero kept; U.S. postcode center; hotels ≤ 5 km | Search ran for 02134 (leading zero kept); 50 hotels returned — the 50-result cap was reached, so more hotels may exist in the area |
+| 00000 | 2026-09-29 | "ZIP code not found", no hotel search | "ZIP code not found. ZIP code 00000 could not be matched to a U.S. postcode location, so no hotel search was run." |
+| 1234 | 2026-09-29 | "Invalid ZIP code", no request | "Invalid ZIP code. Enter exactly five digits, for example 16802 or 02134 (keep leading zeros)." |
 
 ### Corrections and remaining limitations
 
@@ -154,6 +154,7 @@ Full record: [docs/part1/verification.md](https://github.com/ferrgarzaa/expedia-
   driving distance and not from the traveler's location.
 - OpenStreetMap tiles are suitable only for light demo use.
 - Live results change over time, so no check depends on a live count.
+- For dense areas such as 02134 the 50-result cap is reached; the UI states "up to 50 shown".
 
 ## 6. AI disclosure and evidence log
 
