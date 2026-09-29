@@ -6,13 +6,23 @@ join, or CRUD logic of its own, and it never touches SQLite directly.
 """
 
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from app.controllers import booking_controller, travel_controller
+from app.controllers import (
+    booking_controller,
+    hotel_discovery_controller,
+    travel_controller,
+)
+from app.controllers.hotel_discovery_controller import (
+    InvalidZipError,
+    ZipNotResolvedError,
+)
+from app.services.geoapify_client import ProviderError
 from app.controllers.booking_controller import BookingError
 from app.database import init_db, seed_if_empty
 
@@ -121,3 +131,39 @@ def delete_booking(booking_id: str) -> dict:
     except BookingError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
     return {"deleted": booking_id}
+
+
+@app.get("/api/hotels/nearby")
+def hotels_nearby(zip: str = Query("", description="Five-digit U.S. ZIP")) -> dict:
+    """Live hotels within 5 km of the Geoapify location for a U.S. ZIP.
+
+    Errors use distinct codes so the View never shows a failure as an
+    empty search: ``invalid_zip`` (422), ``zip_not_found`` (404),
+    ``rate_limited`` / ``missing_api_key`` (503), and provider failures
+    (502).
+    """
+    try:
+        center, hotels = hotel_discovery_controller.find_hotels_near_zip(zip)
+    except InvalidZipError as error:
+        raise HTTPException(
+            status_code=422, detail={"code": error.code, "message": str(error)}
+        ) from error
+    except ZipNotResolvedError as error:
+        raise HTTPException(
+            status_code=404, detail={"code": error.code, "message": str(error)}
+        ) from error
+    except ProviderError as error:
+        raise HTTPException(
+            status_code=error.status_code,
+            detail={"code": error.code, "message": str(error)},
+        ) from error
+    return {
+        "zip": center.zip_code,
+        "center": center.to_dict(),
+        "radius_m": hotel_discovery_controller.SEARCH_RADIUS_M,
+        "limit": hotel_discovery_controller.RESULT_LIMIT,
+        "count": len(hotels),
+        "results": [h.to_dict() for h in hotels],
+        "source": "Geoapify Geocoding + Places APIs",
+        "retrieved_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    }

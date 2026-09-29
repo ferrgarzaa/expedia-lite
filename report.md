@@ -1,151 +1,182 @@
-# Expedia Lite — Part 2
+# Expedia Lite — Assignment 2 · Part 1: Live Hotel Search and Map
 
-## Repository and commit
+## 1. Project access
 
-https://github.com/ferrgarzaa/expedia-lite at commit `753b3a0`
+- **Repository:** https://github.com/ferrgarzaa/expedia-lite
+- **Assessed commit:** `REPLACE_WITH_COMMIT_HASH` (branch `main`)
+- **Stack:** Vue 3 + Vite (View), FastAPI (HTTP), Python controllers and
+  models, SQLite (Assignment 1 data), Geoapify Geocoding + Places, Leaflet
+  with OpenStreetMap tiles.
 
-Part 2 was developed on the feature branch `part2-hotel-search-mvc`, reviewed
-and checked, then merged into `main`; the commit above is the merged
-final commit on `main`. The Part 1 checkpoint is preserved at commit
-`09efad52247680bd90789f204b2bba2cef2bbc85`.
+### Startup and configuration
 
-## Implementation
+```bash
+# Backend
+cd backend
+python3 -m venv .venv
+./.venv/bin/pip install -r requirements.txt
+cp .env.example .env            # put GEOAPIFY_API_KEY=<your key> in backend/.env
+./.venv/bin/pytest -q           # 39 tests, no live API calls
+./.venv/bin/uvicorn app.main:app --reload --port 8000
 
-Expedia Lite is a Vue frontend, a Python backend, and FastAPI between
-them, in separate `frontend/` and `backend/` folders.
+# Frontend (new terminal)
+cd frontend
+npm install                     # includes leaflet@1.9.4
+npm run dev                     # http://localhost:5173 → tab "Hotels near a ZIP"
+```
 
-**Part 1** read `hotels.csv` and `trips.csv`, joined each trip to its
-hotel by `hotel_id`, and returned the matching stays as JSON for a
-search form and results table.
+- The Geoapify key is read only by FastAPI from `backend/.env`.
+  `.env` is in `.gitignore` and is not tracked; only `backend/.env.example`
+  (placeholder value) is committed. The frontend never receives the key.
+- Map tiles come from OpenStreetMap, which needs no browser credential.
+  Attribution (Leaflet, OpenStreetMap, Geoapify) is always visible.
+- Optional offline mode with labeled sample data (no key, no quota):
+  `./.venv/bin/python scripts/run_with_samples.py`.
 
-**Part 2 changed four things.**
+### What was built
 
-*Storage moved to SQLite.* `backend/app/database.py` owns the
-connection, the schema for `hotels`, `trips`, `users`, and `bookings`,
-and a one-time seed from the four supplied CSVs into
-`backend/data/expedia_lite.db`. `seed_if_empty()` checks whether the
-`hotels` table already holds rows and returns without touching anything
-if it does, so restarting the app never duplicates or reloads the
-starter records. After seeding, every read and write goes to SQLite, and
-travelers can add bookings beyond the seeded examples. Supplied ids are
-preserved and new bookings continue the `B###` sequence without reusing
-one.
-
-*The backend was restructured into Model–View–Controller.*
-`backend/app/models.py` is the **Model**: `Hotel`, `Trip`, `User`, and
-`Booking` hold the records and the relationships between them
-(`Trip.hotel_id → Hotel`, `Booking.trip_id → Trip`,
-`Booking.user_id → User`), plus two joined views, `StayOffer` and
-`BookingRecord`, that resolve those relationships for the interface.
-`backend/app/controllers/` is the **Controller** layer and the only code
-that runs SQL: `travel_controller.py` reads hotels, stays, and
-travelers, and `booking_controller.py` is the database controller that
-performs booking CRUD — `create_booking`, `list_bookings`/`get_booking`,
-`update_booking_status`/`cancel_booking`, and `delete_booking`. The Vue
-frontend is the **View**. `backend/app/main.py` stays a thin FastAPI
-layer that validates a request, calls one controller function, and
-returns JSON; it holds no search, join, or CRUD logic and never touches
-SQLite. It exposes `GET /api/search`, `GET /api/stays`, `GET /api/users`,
-`GET /api/bookings`, `POST /api/bookings`, `PATCH /api/bookings/{id}`,
-and `DELETE /api/bookings/{id}`.
-
-*Search now takes a hotel name.* Part 1 searched by city; the form,
-the FastAPI path (`GET /api/search?hotel=...`), and the controller query
-now match on hotel name, case-insensitively and on part of a name, with
-the same distinct "no results" message.
-
-*The interface gained booking and history, and was rebuilt using the UI
-research approach from In-class Activity 2.* `App.vue` is a shell with
-two tabs. `TripSearch.vue` owns the hotel-name input, the results table,
-and an inline booking form on each row. `BookingHistory.vue` owns the
-history table with Cancel and Delete. All four CRUD actions are
-performed through the frontend, which talks to the backend only through
-`frontend/src/api.js`. The UI work applied one set of design tokens in
-`assets/main.css` so both tabs read as one product; one clear primary
-action per view, with the destructive action outlined in red and behind
-a confirmation step; a visible message after every action, including the
-reason a booking was rejected; explicit loading, empty, and no-results
-states instead of a blank screen; and status shown as a labelled badge
-(`Confirmed` / `Cancelled`) rather than colour alone, with visible focus
-rings and scoped table headers for screen readers.
-
-## Verification
-
-Changes were scanned file by file in VS Code before committing.
-
-| Action | Expected | Observed |
+| Layer | File | Responsibility |
 | --- | --- | --- |
-| `pytest` | All pass | 23 passed |
-| `npm run lint` | 0 errors | 0 errors |
-| `npm run build` | Build succeeds | Build succeeded, 18 modules transformed |
-| Search `Harbor Lantern Hotel` | Matching stays in a labelled table | 2 rows (`T001`, `T009`) with hotel, location, dates, nights, rate, and stay price |
-| Search `Hotel Miami` | Clear no-results message, no table | "No hotel stays found for “Hotel Miami”. Check the spelling or try part of the name." |
-| **Create** — book `Boston Autumn Weekend` as Demo Traveler 2 | Confirmation with a new booking id | "Booked! Confirmation B007 for Demo Traveler 2 at Harbor Lantern Hotel." |
-| **Read** — open Booking history | New booking listed as Confirmed | 7 rows; `B007` present with badge Confirmed |
-| Refresh the browser, reopen history | `B007` still present | `B007` still present after refresh |
-| **Update** — cancel `B007` | Status Cancelled, record retained | "Booking B007 cancelled. The record stays in your history."; badge Cancelled, row still in the table |
-| **Delete** — delete `B007` | Row removed, other records untouched | "Booking B007 deleted permanently."; `B007` gone, `B001` and the other seeded bookings still present, back to 6 rows |
-| Restart backend and frontend | Post-seed changes persist, starter records not duplicated or reloaded | A booking added after seeding, a cancellation of `B001`, and a deletion of `B003` all survived the restart; 12 stays, no duplicate rows |
+| Gateway | `backend/app/services/geoapify_client.py` | Only code that calls Geoapify; maps timeouts, 401/403, 429, 5xx to typed errors |
+| Controller | `backend/app/controllers/hotel_discovery_controller.py` | Validates the ZIP, accepts only an exact U.S. postcode match, requests hotels within 5 km, parses results honestly |
+| Model | `backend/app/models.py` → `SearchCenter`, `ExternalHotel` | Provider `place_id`, name, coordinates, address, distance — **no** price/rating/availability |
+| HTTP | `backend/app/main.py` → `GET /api/hotels/nearby?zip=` | Returns results or a coded error (422 / 404 / 502 / 503) |
+| View | `frontend/src/components/HotelDiscovery.vue`, `HotelMap.vue`, `api.js` | ZIP form, status messages, numbered list, Leaflet map, shared selection |
 
-Every check matched its expected result. Full detail, including the
-commands used for the restart check, is in
-[docs/verification.md](https://github.com/ferrgarzaa/expedia-lite/blob/main/docs/verification.md).
+Geoapify requests: Geocoding `type=postcode&filter=countrycode:us`;
+Places `categories=accommodation.hotel&filter=circle:<lon>,<lat>,5000&bias=proximity:<lon>,<lat>&limit=50`.
 
-**Search by hotel name**
+## 2. Research notes
 
-![Hotel-name search results](https://raw.githubusercontent.com/ferrgarzaa/expedia-lite/main/docs/screenshots/02-search-results.png)
+Full notes: [docs/part1/research.md](https://github.com/ferrgarzaa/expedia-lite/blob/main/docs/part1/research.md)
 
-**No results**
+**Sources:** [Geoapify Geocoding](https://apidocs.geoapify.com/docs/geocoding/forward-geocoding/),
+[Geoapify Places](https://apidocs.geoapify.com/docs/places/),
+[Geoapify pricing](https://www.geoapify.com/pricing/),
+[Leaflet reference](https://leafletjs.com/reference.html),
+[Leaflet accessibility](https://leafletjs.com/examples/accessibility/),
+[OSM tile policy](https://operations.osmfoundation.org/policies/tiles/),
+and the map views of [Google Maps hotels](https://www.google.com/maps/search/hotels),
+[Airbnb](https://www.airbnb.com) and [Booking.com](https://www.booking.com).
 
-![No-results message](https://raw.githubusercontent.com/ferrgarzaa/expedia-lite/main/docs/screenshots/03-no-results.png)
+**Useful:** numbered pins that match list cards; selecting a card
+highlights the pin and vice-versa; the searched area drawn on the map;
+Geoapify returns `result_type`, `country_code` and `postcode`, so the ZIP
+match can be verified; Places supports a 5 km circle plus nearest-first
+ordering in one call.
 
-**Create**
+**Problematic:** commercial apps put prices, ratings and "Book" on pins
+(Geoapify has none — copying it would invent data); sync is often
+hover-only (no keyboard/touch); geocoders return nearby or partial matches
+that could silently become another place; apps often show "0 results"
+when a request failed; Leaflet default marker images break under Vite.
 
-![Booking created](https://raw.githubusercontent.com/ferrgarzaa/expedia-lite/main/docs/screenshots/05-booking-created.png)
+**Decisions:** strict 5-digit text ZIP (leading zeros kept) checked in
+Vue and FastAPI; accept only `postcode` + `us` + exact ZIP, otherwise
+"ZIP not found" and no hotel request; show only name, address,
+coordinates and straight-line distance with honest labels for missing
+fields; numbered `divIcon` pins matching list numbers; click **or
+Enter/Space** on either side selects the same hotel (darker plum + larger pin,
+map pans and opens a popup, list item gets a border and scrolls into
+view); one status area with separate messages for each state; the 50-result
+cap and "not an exhaustive inventory" are stated in the UI.
 
-**Read**
+## 3. Early mockup
 
-![Booking appears in history](https://raw.githubusercontent.com/ferrgarzaa/expedia-lite/main/docs/screenshots/06-booking-in-history.png)
+![Part 1 early mockup](https://raw.githubusercontent.com/ferrgarzaa/expedia-lite/main/docs/part1/mockup-part1.png)
 
-**Persists after a browser refresh**
+Annotated wireframe: ZIP form, one status line, numbered list on the left,
+Leaflet map with a 5 km circle and ZIP center on the right, and the text
+for the other states.
 
-![Booking still present after refresh](https://raw.githubusercontent.com/ferrgarzaa/expedia-lite/main/docs/screenshots/07-after-refresh.png)
+**Changes during implementation:**
+- Added a "Search center: … (lat, lon)" line above the list so users see
+  exactly which point was searched.
+- The status message for results also shows the source, the 50-result
+  cap and the retrieval time.
+- Distances under 1 km are shown in meters (the "≈ 0.0 km" in early tests
+  was misleading).
+- A "Selected: …" line under the map repeats the selection in text and
+  links to the hotel website only when the provider supplied one.
+- The whole interface was re-themed pink (accent `#be185d`, text
+  contrast ≥ 4.5:1) at the student's request; the selected hotel uses a
+  darker plum instead of the mockup's orange so it stays distinct from the
+  pink accent (and is also marked by size, border and `aria-pressed`).
+- Rate-limit and missing-key errors were added as their own failure
+  messages (the mockup had a single "failed" state).
 
-**Update (cancel, record retained)**
+## 4. Demo video
 
-![Booking cancelled](https://raw.githubusercontent.com/ferrgarzaa/expedia-lite/main/docs/screenshots/08-booking-cancelled.png)
+REPLACE_WITH_VIDEO_LINK (unlisted YouTube or Google Drive "Anyone with the link")
 
-**Delete**
+The video shows: startup, a live search for a valid ZIP, clicking a list
+item (pin highlights) and a pin (list highlights), keyboard selection
+with Tab + Enter, a ZIP with a leading zero (02134), an invalid ZIP
+(1234), an unresolved ZIP (00000), and — using sample mode — no results
+and a simulated failure/rate limit.
 
-![Booking deleted](https://raw.githubusercontent.com/ferrgarzaa/expedia-lite/main/docs/screenshots/10-booking-deleted.png)
+## 5. Verification record
 
-## Demo video
+Full record: [docs/part1/verification.md](https://github.com/ferrgarzaa/expedia-lite/blob/main/docs/part1/verification.md)
 
-A demo under three minutes showing a traveler searching for a hotel,
-booking a stay, reading it back in history, cancelling it, and deleting
-it:
+### Automated (labeled fixed JSON samples, not live data) — 2026-09-29
 
-https://youtu.be/msh7j5xQrwc
+| Input / action | Expected | Observed |
+| --- | --- | --- |
+| ZIPs `1680`, `168021`, `16a02`, `16802-1234`, blank | 422 `invalid_zip`; provider not called | Pass |
+| `02134` | Kept as text with leading zero | Pass |
+| 16802 + sample Places response | Nearest first; >5 km and duplicate `place_id` dropped; unnamed place stays `null`; no price/rating fields | Pass |
+| Geocoder answers 16801 / a city for 16802 | 404 `zip_not_found`; Places not called | Pass |
+| Places returns no features | 200 with `count: 0` ("No hotels found") | Pass |
+| Provider 429 | 503 `rate_limited`, no results list | Pass |
+| Provider 401 / 500 / timeout | 502 coded error, no results list | Pass |
+| No API key | 503 `missing_api_key` | Pass |
+| `pytest` (all, incl. Assignment 1) · `npm run lint` · `npm run build` | Pass | 39 passed · 0 errors · built |
+| UI (Playwright, sample mode): each state; click list → pin; Tab to pin + Enter → list | Correct message per state; selection synced both ways | Pass (screenshots in `docs/part1/`) |
 
-## Project context and next steps
+### Live searches
 
-- README: https://github.com/ferrgarzaa/expedia-lite/blob/main/README.md
-- AGENTS.md: https://github.com/ferrgarzaa/expedia-lite/blob/main/AGENTS.md
-- Design note: https://github.com/ferrgarzaa/expedia-lite/blob/main/docs/design-note.md
-- Selected prompts: https://github.com/ferrgarzaa/expedia-lite/blob/main/prompts/part2-crud.md
-- Current handoff: https://github.com/ferrgarzaa/expedia-lite/blob/main/handoffs/current.md
+| ZIP | Observation date | Expected | Observed |
+| --- | --- | --- | --- |
+| 16802 | REPLACE_DATE | Center in State College, PA; hotels ≤ 5 km; list names/coords equal the `/api/hotels/nearby` response | REPLACE |
+| 02134 | REPLACE_DATE | Center in Allston/Boston, MA (leading zero kept) | REPLACE |
+| 00000 | REPLACE_DATE | "ZIP code not found", no hotel search | REPLACE |
+| 1234 | REPLACE_DATE | "Invalid ZIP code", no request | REPLACE |
 
-Remaining limitations: there is no authentication, so the traveler is
-chosen from a dropdown of the seeded demo users and anyone using the app
-can act as any traveler; the optional bonus (demo authentication and
-surge pricing) was not attempted, so the stay price is always
-`nights × nightly_rate_usd`; the app does not model room inventory, so a
-stay can be booked by an unlimited number of travelers; and deleting
-`backend/data/expedia_lite.db` resets the app to the seeded starter data
-on the next run, which is expected behaviour.
+### Corrections and remaining limitations
 
-Next task: Assignment 1 is complete. If the project continues, the next
-step is the optional bonus — demo user authentication so booking history
-is scoped to the signed-in traveler, followed by surge-pricing logic in a
-pricing module that `travel_controller` calls when building a
-`StayOffer`.
+- Corrected: marker keyboard selection (see AI log), a wrong test
+  expectation, and "0.0 km" distance text.
+- Geoapify's hotel data is OpenStreetMap-based: some hotels are missing
+  or unnamed, and results are capped at 50. The app does not claim an
+  exhaustive or bookable inventory and shows no prices.
+- Distance is straight-line from the Geoapify postcode point — not
+  driving distance and not from the traveler's location.
+- OpenStreetMap tiles are suitable only for light demo use.
+- Live results change over time, so no check depends on a live count.
+
+## 6. AI disclosure and evidence log
+
+| Tool | Model | Use |
+| --- | --- | --- |
+| Claude (Cowork mode, Claude desktop app) | `claude-opus-5-5` | Located the repo, read the API docs, implemented backend and frontend changes, wrote tests and fixtures, ran Playwright UI checks, drafted the mockup, research notes and this report |
+
+Prompt excerpts and decisions: [prompts/a2-part1-live-search.md](https://github.com/ferrgarzaa/expedia-lite/blob/main/prompts/a2-part1-live-search.md)
+
+- *Prompt:* "ocupo que me ayudes hacer esto porfavor" + the assignment
+  brief → plan and implementation of the gateway / controller / model /
+  endpoint / Vue components.
+- *Dependency (CHECK → ACTION → VERIFY):* agent proposed exactly
+  `npm install leaflet@1.9.4`; student replied "Sí, apruebo"; verified by
+  lint + build.
+- *Decision:* rejected "use the first geocoding result" in favor of an
+  exact U.S. postcode match (`pick_postcode_match`, tested).
+- *Failed / revised approach:* pressing Enter on a Leaflet marker did not
+  select it; two fixes failed (element not yet created; TDZ error) before
+  the final fix (set the map view first, bind in the marker `add` event).
+  Re-verified with Playwright.
+- *Failed test:* a sample-ordering expectation was wrong; distances were
+  recomputed and the test corrected.
+
+All AI-generated code was reviewed by the student before committing. No
+credentials appear in this report, the repository, or the recordings.

@@ -15,20 +15,29 @@ async function request(path, options = {}) {
       ...options,
     })
   } catch {
-    throw new Error('Could not reach the booking service. Is the backend running?')
+    const error = new Error('Could not reach the Expedia Lite server. Is the backend running?')
+    error.code = 'network'
+    throw error
   }
 
   if (!response.ok) {
     let detail = `Request failed (${response.status}).`
+    let code = 'request_failed'
     try {
       const body = await response.json()
-      if (body?.detail) {
-        detail = typeof body.detail === 'string' ? body.detail : detail
+      if (typeof body?.detail === 'string') {
+        detail = body.detail
+      } else if (body?.detail?.message) {
+        detail = body.detail.message
+        code = body.detail.code ?? code
       }
     } catch {
       // Keep the generic message.
     }
-    throw new Error(detail)
+    const error = new Error(detail)
+    error.code = code
+    error.status = response.status
+    throw error
   }
 
   return response.json()
@@ -62,4 +71,12 @@ export function cancelBooking(bookingId) {
 
 export function deleteBooking(bookingId) {
   return request(`/api/bookings/${bookingId}`, { method: 'DELETE' })
+}
+
+/**
+ * Assignment 2 — live hotels within 5 km of a U.S. ZIP code.
+ * The browser only calls FastAPI; FastAPI holds the Geoapify key.
+ */
+export function searchHotelsNearZip(zip) {
+  return request(`/api/hotels/nearby?zip=${encodeURIComponent(zip)}`)
 }

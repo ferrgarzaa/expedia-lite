@@ -11,17 +11,17 @@
 :root {
   --page-width: 76rem;
 
-  --bg: #f6f7f5;
+  --bg: #fdf4f8;
   --surface: #ffffff;
-  --surface-muted: #f0f2ef;
-  --line: #d9ddd6;
+  --surface-muted: #fbe9f1;
+  --line: #efd3e0;
 
-  --text: #1c211d;
-  --text-muted: #5a635c;
+  --text: #2a1a22;
+  --text-muted: #6b4f5c;
 
-  --accent: #1f7a4d;
-  --accent-dark: #17603c;
-  --accent-soft: #e6f2ec;
+  --accent: #be185d;
+  --accent-dark: #9d174d;
+  --accent-soft: #fce7f3;
 
   --danger: #9b1c1c;
   --danger-dark: #7f1616;

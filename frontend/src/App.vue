@@ -1,14 +1,16 @@
 <script setup>
 import { provide, ref } from 'vue'
 import TripSearch from './components/TripSearch.vue'
+import HotelDiscovery from './components/HotelDiscovery.vue'
 import BookingHistory from './components/BookingHistory.vue'
 
 const TABS = [
+  { id: 'discover', label: 'Hotels near a ZIP' },
   { id: 'search', label: 'Search stays' },
   { id: 'history', label: 'Booking history' },
 ]
 
-const activeTab = ref('search')
+const activeTab = ref('discover')
 const historyVersion = ref(0)
 
 /**
@@ -54,6 +56,7 @@ provide('goToHistory', goToHistory)
     </header>
 
     <main class="app-main">
+      <HotelDiscovery v-show="activeTab === 'discover'" />
       <TripSearch v-show="activeTab === 'search'" />
       <BookingHistory
         v-if="activeTab === 'history'"
@@ -62,7 +65,7 @@ provide('goToHistory', goToHistory)
     </main>
 
     <footer class="app-footer">
-      <p>Demo application — bookings are simulated and stored locally in SQLite.</p>
+      <p>Demo application — bookings are simulated and stored locally in SQLite. Live hotel locations come from Geoapify and are not a complete or bookable inventory.</p>
     </footer>
   </div>
 </template>

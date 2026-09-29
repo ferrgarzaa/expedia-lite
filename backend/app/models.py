@@ -18,6 +18,7 @@ shows.
 
 from dataclasses import dataclass
 from datetime import date
+from typing import Optional
 
 
 def _nights_between(check_in: str, check_out: str) -> int:
@@ -200,4 +201,67 @@ class BookingRecord:
             "check_out": self.offer.trip.check_out,
             "nights": self.offer.nights,
             "stay_price_usd": self.offer.stay_price_usd,
+        }
+
+
+# ---------------------------------------------------------------------------
+# Assignment 2 — external places from Geoapify
+# ---------------------------------------------------------------------------
+#
+# These records come from a public API, not from the supplied CSV files.
+# They deliberately have NO nightly rate, rating, or availability field:
+# Geoapify returns location data only, and the interface must not invent
+# prices or bookable rooms. Missing provider fields stay ``None`` so the
+# View can label them honestly instead of guessing.
+
+
+@dataclass(frozen=True)
+class SearchCenter:
+    """The U.S. postcode location Geoapify returned for a ZIP code.
+
+    This point — not the traveler's position and not every address in the
+    ZIP area — is the center of the 5 km hotel search.
+    """
+
+    zip_code: str
+    lat: float
+    lon: float
+    label: Optional[str]
+
+    def to_dict(self) -> dict:
+        return {
+            "zip": self.zip_code,
+            "lat": self.lat,
+            "lon": self.lon,
+            "label": self.label,
+        }
+
+
+@dataclass(frozen=True)
+class ExternalHotel:
+    """One hotel-category place returned by the Geoapify Places API.
+
+    ``place_id`` is the provider's identifier (used later for the Part 2
+    shortlist). ``distance_m`` is the straight-line distance from the
+    search center, computed from the returned coordinates.
+    """
+
+    place_id: str
+    name: Optional[str]
+    lat: float
+    lon: float
+    address: Optional[str]
+    distance_m: Optional[int]
+    website: Optional[str]
+
+    def to_dict(self) -> dict:
+        return {
+            "place_id": self.place_id,
+            "name": self.name,
+            "lat": self.lat,
+            "lon": self.lon,
+            "address": self.address,
+            "distance_m": self.distance_m,
+            "website": self.website,
+            "source": "Geoapify",
         }

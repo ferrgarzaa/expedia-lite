@@ -1,0 +1,5 @@
+{"_sample":"Labeled fixed sample: provider answered with a different postcode and a city",
+ "results":[
+  {"result_type":"postcode","country_code":"us","postcode":"16801","lat":40.79,"lon":-77.86,"formatted":"State College, PA 16801, United States of America"},
+  {"result_type":"city","country_code":"us","postcode":"99999","lat":40.0,"lon":-77.0,"formatted":"Somewhere, PA"}
+ ]}

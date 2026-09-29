@@ -1,0 +1,4 @@
+{"_sample":"Labeled fixed sample shaped like Geoapify Geocoding; not live data",
+ "results":[
+  {"result_type":"postcode","country_code":"us","postcode":"16802","city":"State College","state":"Pennsylvania","lat":40.7982,"lon":-77.8599,"formatted":"State College, PA 16802, United States of America","rank":{"confidence":1}}
+ ]}

@@ -1,6 +1,10 @@
 # Expedia Lite
 
-A small local travel application built for IST 402 Assignment 1.
+A small local travel application built for IST 402 Assignments 1 and 2.
+
+- **Assignment 2 · Part 1** — live hotel search by U.S. ZIP code
+  (Geoapify through FastAPI) shown as a synchronized list and Leaflet map.
+  See [docs/part1/](docs/part1/).
 
 - **Part 1** — search hotel stays by hotel name.
 - **Part 2** — the same search backed by SQLite, plus simulated booking
@@ -56,6 +60,16 @@ SQLite with fresh `B###` ids that never collide with the seeded ones.
 | `POST` | `/api/bookings` | **Create** — book a stay |
 | `PATCH` | `/api/bookings/{id}` | **Update** — cancel (record retained) |
 | `DELETE` | `/api/bookings/{id}` | **Delete** — remove the record |
+| `GET` | `/api/hotels/nearby?zip=<5 digits>` | Live hotels ≤ 5 km from the Geoapify location of a U.S. ZIP. Errors: 422 `invalid_zip`, 404 `zip_not_found`, 503 `rate_limited`/`missing_api_key`, 502 provider failure |
+
+### Live hotel search (Assignment 2)
+
+```
+Vue (HotelDiscovery + HotelMap) ─▶ FastAPI /api/hotels/nearby
+   ─▶ controllers/hotel_discovery_controller.py (validate, verify ZIP, parse)
+   ─▶ services/geoapify_client.py (only code that calls Geoapify; holds the key)
+   ─▶ models.SearchCenter / models.ExternalHotel (no price field)
+```
 
 ## Requirements
 
@@ -70,12 +84,23 @@ SQLite with fresh `B###` ids that never collide with the seeded ones.
 cd backend
 python3 -m venv .venv
 ./.venv/bin/pip install -r requirements.txt
+cp .env.example .env        # then paste your Geoapify key into backend/.env
 ./.venv/bin/pytest                                   # run tests
 ./.venv/bin/uvicorn app.main:app --reload --port 8000
 ```
 
 Backend runs at `http://127.0.0.1:8000`; interactive docs at
 `http://127.0.0.1:8000/docs`.
+
+**Geoapify key:** create a free account at https://myprojects.geoapify.com,
+create a project, copy its API key into `backend/.env` as
+`GEOAPIFY_API_KEY=...`. The file is git-ignored; never commit it and never
+put the key in `frontend/`. The map tiles come from OpenStreetMap and need
+no key.
+
+**Offline sample mode** (no key, no quota — labeled fixture data only):
+`./.venv/bin/python scripts/run_with_samples.py` (ZIPs: 16802 results,
+00000 not found, 99999 no hotels, 50000 failure, 42900 rate limit).
 
 ### Frontend
 

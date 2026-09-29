@@ -1,0 +1,9 @@
+{"_sample":"Labeled fixed sample shaped like Geoapify Places; names are illustrative, not live data",
+ "type":"FeatureCollection",
+ "features":[
+  {"type":"Feature","properties":{"place_id":"sample-far","name":"Sample Far Hotel","lat":40.90,"lon":-77.86,"formatted":"Sample Far Hotel, Far Rd, PA"},"geometry":{"type":"Point","coordinates":[-77.86,40.90]}},
+  {"type":"Feature","properties":{"place_id":"sample-b","name":"Sample Campus Inn","lat":40.8050,"lon":-77.8600,"formatted":"Sample Campus Inn, 200 Example Ave, State College, PA 16802, United States of America","website":"https://example.com"},"geometry":{"type":"Point","coordinates":[-77.8600,40.8050]}},
+  {"type":"Feature","properties":{"place_id":"sample-a","name":"Sample Downtown Hotel","lat":40.7985,"lon":-77.8601,"formatted":"Sample Downtown Hotel, 100 Example St, State College, PA 16802, United States of America"},"geometry":{"type":"Point","coordinates":[-77.8601,40.7985]}},
+  {"type":"Feature","properties":{"place_id":"sample-unnamed","lat":40.7900,"lon":-77.8500},"geometry":{"type":"Point","coordinates":[-77.8500,40.7900]}},
+  {"type":"Feature","properties":{"place_id":"sample-a","name":"Sample Downtown Hotel (duplicate)","lat":40.7985,"lon":-77.8601},"geometry":{"type":"Point","coordinates":[-77.8601,40.7985]}}
+ ]}

@@ -8,3 +8,9 @@ frontend/node_modules/
 frontend/dist/
 frontend/.eslintcache
 .DS_Store
+
+# Secrets (Assignment 2): API keys live only in local .env files
+.env
+**/.env
+!.env.example
+!**/.env.example

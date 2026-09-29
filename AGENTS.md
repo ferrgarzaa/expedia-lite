@@ -14,8 +14,21 @@ project. Read this and `README.md` before making changes.
   - `backend/app/main.py` handles HTTP only — no SQL, no join logic;
   - `backend/app/database.py` owns connection, schema, and seeding, and
     performs no CRUD.
+- External APIs (Assignment 2): only `backend/app/services/` calls
+  Geoapify. Controllers interpret results; `main.py` maps errors to HTTP.
+  API keys live only in `backend/.env` (git-ignored) — never in code,
+  commits, screenshots, or `frontend/`.
+- Never invent provider data: no prices, ratings, availability, or
+  booking confirmations for Geoapify places. Missing fields stay `null`
+  and get an honest label in the View.
+- A failed provider request must never be shown as an empty search.
+- Tests must use the labeled fixtures in `backend/tests/fixtures/`, not
+  the live API, and must not depend on a live result count.
 - Do not add dependencies without approval. Follow CHECK → TAKE
-  ACTION → VERIFY before installing anything.
+  ACTION → VERIFY before installing anything: CHECK what is already
+  installed (`package.json`, `requirements.txt`); explain the exact
+  command and wait for the student's approval; then VERIFY with the
+  checks below. (Example: `leaflet@1.9.4` was approved on 2026-09-29.)
 - Do not use blue buttons.
 - Keep changes within the requested scope.
 - Run the checks before reporting completion (`backend/.venv/bin/pytest`,
